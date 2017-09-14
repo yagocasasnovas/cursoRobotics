@@ -1,0 +1,30 @@
+ROSCORE: ... logging to /home/lubuntu/.ros/log/f99cdd8a-995b-11e7-8d3d-e4a47104dfee/roslaunch-lubuntu-pc-9629.log
+ROSCORE: Checking log directory for disk usage. This may take awhile.
+ROSCORE: Press Ctrl-C to interrupt
+ROSCORE: Done checking log file disk usage. Usage is <1GB.
+ROSCORE: ]2;roscore
+ROSCORE: [1mstarted roslaunch server http://lubuntu-pc:44087/[0m
+ROSCORE: ros_comm version 1.13.2
+ROSCORE: 
+ROSCORE: 
+ROSCORE: SUMMARY
+ROSCORE: ========
+ROSCORE: 
+ROSCORE: PARAMETERS
+ROSCORE:  * /rosdistro: lunar
+ROSCORE:  * /rosversion: 1.13.2
+ROSCORE: 
+ROSCORE: NODES
+ROSCORE: 
+ROSCORE: auto-starting new master
+ROSCORE: [1mprocess[master]: started with pid [9759][0m
+ROSCORE: [1mROS_MASTER_URI=http://lubuntu-pc:37765/[0m
+ROSCORE: ]2;roscore http://lubuntu-pc:37765/
+ROSCORE: [1msetting /run_id to f99cdd8a-995b-11e7-8d3d-e4a47104dfee[0m
+ROSCORE: [1mprocess[rosout-1]: started with pid [9776][0m
+ROSCORE: started core service [/rosout]
+ROSCORE: [rosout-1] killing on exit
+ROSCORE: [master] killing on exit
+ROSCORE: shutting down processing monitor...
+ROSCORE: ... shutting down processing monitor complete
+ROSCORE: [1mdone[0m
