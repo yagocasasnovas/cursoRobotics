@@ -13,7 +13,7 @@ def talker(p,a,b):
 	#rate = rospy.Rate(10) # 10hz
 	#while not rospy.is_shutdown():
 	sum_answer = a + b
-	rospy.loginfo("Sum: %s", sum_answer)
+	rospy.loginfo("Suma: %s", sum_answer)
 	#print str(a) + " " + str(b) + " " + str(sum_answer)
 	pub.publish(sum_answer)
 	#rate.sleep()
