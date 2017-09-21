@@ -47,7 +47,6 @@ def publish_transforms():
 	t3.header.stamp = rospy.Time.now()
 	t3.header.frame_id = "robot_frame"
 	t3.child_frame_id = "camera_frame"
-	
 	tr3 = tf.transformations.translation_from_matrix(T1_inverse)
 	t3.transform.translation.x = tr3[0]
 	t3.transform.translation.y = tr3[1]
