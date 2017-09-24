@@ -12,6 +12,7 @@ import geometry_msgs.msg
 def message_from_transform(T):
 	
 	
+	"identity = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,0]]"
 	
 	msg = geometry_msgs.msg.Transform()
 	q = tf.transformations.quaternion_from_matrix(T)
@@ -31,6 +32,9 @@ def message_from_transform(T):
 	
 
 def publish_transforms():
+	
+	origin = [0,0,0,1]
+	
 	pepe = tf.transformations.quaternion_from_euler(0.79,0.0,0.79)
 	
 	juan = tf.transformations.quaternion_matrix(pepe)
@@ -43,6 +47,9 @@ def publish_transforms():
 		toni
 		)
 	
+	"print numpy.dot(T1,origin)"
+	
+	"[ 0.00462295 -0.00458059  1.41419859 ]"
 	
 	T1_stamped = geometry_msgs.msg.TransformStamped()
 	T1_stamped.header.stamp = rospy.Time.now()
@@ -71,7 +78,7 @@ def publish_transforms():
 	T2_stamped.transform = message_from_transform(T2)
 	br.sendTransform(T2_stamped)
 	
-	pepe3 = tf.transformations.quaternion_from_euler(0.0,-0.79,1.5)
+	pepe3 = tf.transformations.quaternion_from_euler(0.0,-0.9702552,1.58)
 	
 	juan3 = tf.transformations.quaternion_matrix(pepe3)
 	
@@ -83,7 +90,13 @@ def publish_transforms():
 		juan3
 		
 		)
+	TT = numpy.dot(toni3,T2)
 	
+	ttt = numpy.dot(TT,origin)
+	print ttt
+	"[ 0.99749499  0.0292628   0.1 ]"
+
+	"[ 0.06554641  0.66430061  0.92296324 ]"
 	
 	T3_stamped = geometry_msgs.msg.TransformStamped()
 	T3_stamped.header.stamp = rospy.Time.now()
