@@ -7,86 +7,255 @@ import tf
 import tf2_ros
 import geometry_msgs.msg
 
-def publish_transforms():
-	t1 = geometry_msgs.msg.TransformStamped()
+def transformed(rot,tras,orig):
 	
-	
-	
-	t1.header.stamp = rospy.Time.now()
-	t1.header.frame_id = "base_frame"
-	t1.child_frame_id = "object_frame"
-	
-	"""print "original: "
-	print t1"""
-	
-	q1 = tf.transformations.quaternion_from_euler(0.79, 0.0, 0.79)
-	t1.transform.rotation.x = q1[0]
-	t1.transform.rotation.y = q1[1]
-	t1.transform.rotation.z = q1[2]
-	t1.transform.rotation.w = q1[3]
-	
+	return numpy.dot(rot,orig) + tras
 
-	t1.transform.translation.x = 0.0
-	t1.transform.translation.y = 1.0
-	t1.transform.translation.z = 1.0
+def normalize(v):
+	norm=numpy.linalg.norm(v, ord=1)
+	if norm==0:
+		norm=numpy.finfo(v.dtype).eps
+	return v/norm
 	
+def get_translation(matrix):
+	
+	n = numpy.zeros(3)
+	
+	n.itemset(0,matrix.item(3))
+	n.itemset(1,matrix.item(7))
+	n.itemset(2,matrix.item(11))
+	
+	
+	return n
+	
+def get_translation1(matrix):
+	n = numpy.ndarray((4,4),dtype=float)
+	n.fill(0)
+	n.itemset(0,1)
+	n.itemset(5,1)
+	n.itemset(10,1)
+	n.itemset(3,matrix.item(3))
+	n.itemset(7,matrix.item(7))
+	n.itemset(11,matrix.item(11))
+	n.itemset(15,1)
+	
+	return n
+	
+def get_rotation(matrix):
+	n = numpy.ndarray((3,3),dtype=float)
+	n.fill(0)
+	n.itemset(0,matrix.item(0))
+	n.itemset(1,matrix.item(1))
+	n.itemset(2,matrix.item(2))
+	n.itemset(3,matrix.item(4))
+	n.itemset(4,matrix.item(5))
+	n.itemset(5,matrix.item(6))
+	n.itemset(6,matrix.item(8))
+	n.itemset(7,matrix.item(9))
+	n.itemset(8,matrix.item(10))
+	
+	return n
+
+def get_rotation1(matrix):
+	n = numpy.ndarray((4,4),dtype=float)
+	n.fill(0)
+	n.itemset(0,matrix.item(0))
+	n.itemset(1,matrix.item(1))
+	n.itemset(2,matrix.item(2))
+	
+	n.itemset(4,matrix.item(4))
+	n.itemset(5,matrix.item(5))
+	n.itemset(6,matrix.item(6))
+	
+	n.itemset(8,matrix.item(8))
+	n.itemset(9,matrix.item(9))
+	n.itemset(10,matrix.item(10))
+	n.itemset(15,1)
+	
+	return n
+
+def DHMatrix(d,omega,r,alpha):
+	n = numpy.ndarray(shape=(4,4), dtype=float)
+	n.fill(0)
+	
+	n.itemset(0,numpy.cos(omega))
+	
+	n.itemset(1,numpy.sin(omega)*numpy.cos(alpha)*(-1))
+	
+	n.itemset(2,numpy.sin(omega)*numpy.sin(alpha))
+	
+	n.itemset(3,numpy.cos(omega)*r)
+	
+	n.itemset(4,numpy.sin(omega))
+	
+	n.itemset(5,numpy.cos(omega)*numpy.cos(alpha))
+	
+	n.itemset(6,numpy.cos(omega)*numpy.sin(alpha)*(-1))
+	
+	n.itemset(7,numpy.sin(omega)*r)
+	
+	n.itemset(9,numpy.sin(alpha))
+	
+	n.itemset(10,numpy.cos(alpha))
+	n.itemset(11,d)
+	n.itemset(15,1)
+	
+	return n
 		
+def message_from_transform(T):
 	
-	br.sendTransform(t1)
-
-	t2 = geometry_msgs.msg.TransformStamped()
-	t2.header.stamp = rospy.Time.now()
-	t2.header.frame_id = "base_frame"
-	t2.child_frame_id = "robot_frame"
-
-	q2 = tf.transformations.quaternion_about_axis(1.5, (0,0,1))
-	t2.transform.rotation.x = q2[0]
-	t2.transform.rotation.y = q2[1]
-	t2.transform.rotation.z = q2[2]
-	t2.transform.rotation.w = q2[3]
 	
-	"""t2.transform.translation.x = 0.0
-	t2.transform.translation.y = -1.0
-	t2.transform.translation.z = 0.0
-	br.sendTransform(t2)"""
-
-	T1 = numpy.dot(tf.transformations.translation_matrix((1.0, 1.0, 0.0)),
-                   tf.transformations.quaternion_matrix(q1))
-	T1_inverse = tf.transformations.inverse_matrix(T1)
- 
-	t3 = geometry_msgs.msg.TransformStamped()
-	t3.header.stamp = rospy.Time.now()
-	t3.header.frame_id = "robot_frame"
-	t3.child_frame_id = "camera_frame"
 	
-	tr3 = tf.transformations.translation_from_matrix(T1_inverse)
-	t3.transform.translation.x = tr3[0]
-	t3.transform.translation.y = tr3[1]
-	t3.transform.translation.z = tr3[2]
-	q3 = tf.transformations.quaternion_from_matrix(T1_inverse)
-	t3.transform.rotation.x = q3[0]
-	t3.transform.rotation.y = q3[1]
-	t3.transform.rotation.z = q3[2]
-	t3.transform.rotation.w = q3[3]
-	"br.sendTransform(t3)"
+	msg = geometry_msgs.msg.Transform()
+	q = tf.transformations.quaternion_from_matrix(T)
+	
+	translation = tf.transformations.translation_from_matrix(T)
+	
+	msg.translation.x = translation[0]
+	msg.translation.y = translation[1]
+	msg.translation.z = translation[2]
+	
+	msg.rotation.x = q[0]
+	msg.rotation.y = q[1]
+	msg.rotation.z = q[2]
+	msg.rotation.w = q[3]
+	
+	return msg
+	
 
-	T2 = numpy.dot(tf.transformations.translation_matrix((1.0, 0.0, 0.0)),tf.transformations.quaternion_matrix(q2))
-	T2_inverse = tf.transformations.inverse_matrix(T2)
+def publish_transforms():
+	
+	origin = [0,0,0,1]
+	origin2 = [0,0,0]
+	
+	euler = tf.transformations.quaternion_from_euler(0.79,0.0,0.79)
+	
+	ROobject = tf.transformations.quaternion_matrix(euler)
+	
+	TRobject = tf.transformations.translation_matrix((0.0,1.0,1.0))
+	
+	Tobject = tf.transformations.concatenate_matrices(
+		
+		ROobject,
+		TRobject
+		)
+	
 
-	t4 = geometry_msgs.msg.TransformStamped()
-	t4.header.stamp = rospy.Time.now()
-	t4.header.frame_id = "F2"
-	t4.child_frame_id = "F3"
-	tr4 = tf.transformations.translation_from_matrix(T2_inverse)
-	t4.transform.translation.x = tr4[0]
-	t4.transform.translation.y = tr4[1]
-	t4.transform.translation.z = tr4[2]
-	q4 = tf.transformations.quaternion_from_matrix(T2_inverse)
-	t4.transform.rotation.x = q4[0]
-	t4.transform.rotation.y = q4[1]
-	t4.transform.rotation.z = q4[2]
-	t4.transform.rotation.w = q4[3]
-	"""br.sendTransform(t4)"""
+	"""pepe = tf.transformations.concatenate_matrices(Tobject,origin)
+	print pepe
+	rot = get_rotation(Tobject)
+	print transformed(rot,get_translation(Tobject),origin2)"""
+	
+
+	TobjectINV = tf.transformations.inverse_matrix(Tobject)
+	
+	"print tf.transformations.concatenate_matrices(TobjectINV,origin)"
+	
+	T1_stamped = geometry_msgs.msg.TransformStamped()
+	T1_stamped.header.stamp = rospy.Time.now()
+	T1_stamped.header.frame_id = "base_frame"
+	T1_stamped.child_frame_id = "object_frame"
+	T1_stamped.transform = message_from_transform(Tobject)
+	br.sendTransform(T1_stamped)
+	
+	
+	
+	about_axis = tf.transformations.quaternion_about_axis(1.5, (0,0,1))
+	
+	ROrobot = tf.transformations.quaternion_matrix(about_axis)
+	
+	TRrobot = tf.transformations.translation_matrix((0.0,-1.0,0.0))
+	
+	Trobot = tf.transformations.concatenate_matrices(
+		
+		ROrobot,
+		TRrobot
+		)
+	
+	
+	TrobotRot = get_rotation1(Trobot)
+	
+	TrobotRot2 = tf.transformations.inverse_matrix(TrobotRot)
+	TrobotINV = tf.transformations.inverse_matrix(Trobot)
+	
+	TrobotINV1 = get_translation1(Trobot)
+	TrobotINV2 = tf.transformations.inverse_matrix(TrobotINV1)
+	
+	"""print "s"
+	print Trobot
+	print TrobotINV"""
+	
+	
+	
+	T2_stamped = geometry_msgs.msg.TransformStamped()
+	T2_stamped.header.stamp = rospy.Time.now()
+	T2_stamped.header.frame_id = "base_frame"
+	T2_stamped.child_frame_id = "robot_frame"
+	T2_stamped.transform = message_from_transform(Trobot)
+	br.sendTransform(T2_stamped)
+	
+	
+	
+	TRcamera = tf.transformations.translation_matrix((0.0,0.1,0.1))
+	TRcameraINV = tf.transformations.inverse_matrix(TRcamera)
+	
+	
+	
+	
+	
+
+	
+	Tpepe = tf.transformations.concatenate_matrices(TRcameraINV,TrobotINV)
+	Tjuan = tf.transformations.concatenate_matrices(Tpepe,Tobject)
+	
+	vect = tf.transformations.concatenate_matrices(Tjuan,origin)
+	vect1 = numpy.zeros(3)
+	
+	vect1.itemset(0,vect.item(0))
+	vect1.itemset(1,vect.item(1))
+	vect1.itemset(2,vect.item(2))
+	
+	
+	ort = numpy.cross([1,0,0],vect1)
+	pp = numpy.pi/2
+	
+	
+	about_axis = tf.transformations.quaternion_about_axis(1.573, ort)
+
+	ROcamera = tf.transformations.quaternion_matrix(about_axis )
+
+	TCameraFinal = tf.transformations.concatenate_matrices(TRcamera,ROcamera)
+	
+	T3_stamped = geometry_msgs.msg.TransformStamped()
+	T3_stamped.header.stamp = rospy.Time.now()
+	T3_stamped.header.frame_id = "robot_frame"
+	T3_stamped.child_frame_id = "camera_frame"
+	T3_stamped.transform = message_from_transform(TCameraFinal)
+	br.sendTransform(T3_stamped)
+	
+
+	"""Tkk = tf.transformations.inverse_matrix(TRcamera)
+	
+	Tkk1 = tf.transformations.inverse_matrix(get_rotation1(Trobot))
+	
+	Tkk2 = tf.transformations.concatenate_matrices(Tkk1,Tkk)"""
+
+	
+
+	"print Tob1"
+
+	"""Tpepe = tf.transformations.concatenate_matrices(TRcameraINV,TrobotINV)
+	Tjuan = tf.transformations.concatenate_matrices(Tpepe,Tobject)
+	
+	vect = tf.transformations.concatenate_matrices(Tjuan,origin)
+	
+	T4_stamped = geometry_msgs.msg.TransformStamped()
+	T4_stamped.header.stamp = rospy.Time.now()
+	T4_stamped.header.frame_id = "camera_frame"
+	T4_stamped.child_frame_id = "pepe_frame"
+	T4_stamped.transform = message_from_transform(Tjuan)
+	br.sendTransform(T4_stamped)"""
+
 
 if __name__ == '__main__':
 	rospy.init_node('project2_solution')
@@ -97,4 +266,3 @@ if __name__ == '__main__':
 	while not rospy.is_shutdown():
 		publish_transforms()
 		rospy.sleep(0.05)
-
