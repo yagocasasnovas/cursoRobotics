@@ -214,19 +214,13 @@ def publish_transforms():
 	vect1.itemset(0,vect.item(0))
 	vect1.itemset(1,vect.item(1))
 	vect1.itemset(2,vect.item(2))
-	scalar_product = numpy.dot([1,0,0],vect1)
 	
-	norm = numpy.linalg.norm(vect1)
-	
-	cosinus = scalar_product/norm
-	
-	angle = numpy.arccos(cosinus)
 	
 	ort = numpy.cross([1,0,0],vect1)
 	pp = numpy.pi/2
 	
 	
-	about_axis = tf.transformations.quaternion_about_axis(angle, ort)
+	about_axis = tf.transformations.quaternion_about_axis(1.573, ort)
 
 	ROcamera = tf.transformations.quaternion_matrix(about_axis )
 

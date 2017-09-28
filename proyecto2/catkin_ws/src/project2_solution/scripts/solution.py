@@ -219,6 +219,13 @@ def publish_transforms():
 	ort = numpy.cross([1,0,0],vect1)
 	pp = numpy.pi/2
 	
+	scalar_product = numpy.dot([1,0,0],vect1)
+	
+	norm = numpy.linalg.norm(vect1)
+	
+	cosinus = scalar_product/norm
+	
+	angle = numpy.arccos(cosinus)
 	
 	about_axis = tf.transformations.quaternion_about_axis(1.573, ort)
 
