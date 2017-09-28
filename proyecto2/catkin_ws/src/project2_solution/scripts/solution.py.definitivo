@@ -1,0 +1,118 @@
+#!/usr/bin/env python  
+import rospy
+
+import numpy
+
+import tf
+import tf2_ros
+import geometry_msgs.msg
+
+
+
+def message_from_transform(T):
+	
+	
+	"identity = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,0]]"
+	
+	msg = geometry_msgs.msg.Transform()
+	q = tf.transformations.quaternion_from_matrix(T)
+	
+	translation = tf.transformations.translation_from_matrix(T)
+	
+	msg.translation.x = translation[0]
+	msg.translation.y = translation[1]
+	msg.translation.z = translation[2]
+	
+	msg.rotation.x = q[0]
+	msg.rotation.y = q[1]
+	msg.rotation.z = q[2]
+	msg.rotation.w = q[3]
+	
+	return msg
+	
+
+def publish_transforms():
+	
+	origin = [0,0,0,1]
+	
+	pepe = tf.transformations.quaternion_from_euler(0.79,0.0,0.79)
+	
+	juan = tf.transformations.quaternion_matrix(pepe)
+	
+	toni = tf.transformations.translation_matrix((0.0,1.0,1.0))
+	
+	T1 = tf.transformations.concatenate_matrices(
+		
+		juan,
+		toni
+		)
+	
+	"print numpy.dot(T1,origin)"
+	
+	"[ 0.00462295 -0.00458059  1.41419859 ]"
+	
+	T1_stamped = geometry_msgs.msg.TransformStamped()
+	T1_stamped.header.stamp = rospy.Time.now()
+	T1_stamped.header.frame_id = "base_frame"
+	T1_stamped.child_frame_id = "object_frame"
+	T1_stamped.transform = message_from_transform(T1)
+	br.sendTransform(T1_stamped)
+	
+	pepe2 = tf.transformations.quaternion_about_axis(1.5, (0,0,1))
+	
+	juan2 = tf.transformations.quaternion_matrix(pepe2)
+	
+	toni2 = tf.transformations.translation_matrix((0.0,-1.0,0.0))
+	
+	T2 = tf.transformations.concatenate_matrices(
+		
+		juan2,
+		toni2
+		)
+	
+	
+	T2_stamped = geometry_msgs.msg.TransformStamped()
+	T2_stamped.header.stamp = rospy.Time.now()
+	T2_stamped.header.frame_id = "base_frame"
+	T2_stamped.child_frame_id = "robot_frame"
+	T2_stamped.transform = message_from_transform(T2)
+	br.sendTransform(T2_stamped)
+	
+	pepe3 = tf.transformations.quaternion_from_euler(0.0,-0.9702552,1.58)
+	
+	juan3 = tf.transformations.quaternion_matrix(pepe3)
+	
+	toni3 = tf.transformations.translation_matrix((0.0,0.1,0.1))
+	
+	T3 = tf.transformations.concatenate_matrices(
+		
+		toni3,
+		juan3
+		
+		)
+	TT = numpy.dot(toni3,T2)
+	
+	ttt = numpy.dot(TT,origin)
+	print ttt
+	"[ 0.99749499  0.0292628   0.1 ]"
+
+	"[ 0.06554641  0.66430061  0.92296324 ]"
+	
+	T3_stamped = geometry_msgs.msg.TransformStamped()
+	T3_stamped.header.stamp = rospy.Time.now()
+	T3_stamped.header.frame_id = "robot_frame"
+	T3_stamped.child_frame_id = "camera_frame"
+	T3_stamped.transform = message_from_transform(T3)
+	br.sendTransform(T3_stamped)
+
+
+if __name__ == '__main__':
+	rospy.init_node('project2_solution')
+
+	br = tf2_ros.TransformBroadcaster()
+	rospy.sleep(0.5)
+
+	while not rospy.is_shutdown():
+		publish_transforms()
+		rospy.sleep(0.05)
+
