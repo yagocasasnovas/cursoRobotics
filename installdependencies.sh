@@ -14,6 +14,8 @@ apt-get install ros-lunar-rqt --assume-yes
 
 apt-get install ros-lunar-rqt-common-plugins --assume-yes
 
+apt-get install ros-kinetic-urdfdom.py
+
 rosdep init
 
 rosdep update
