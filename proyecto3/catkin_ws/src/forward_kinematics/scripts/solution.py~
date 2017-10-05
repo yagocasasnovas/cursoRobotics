@@ -9,6 +9,55 @@ import tf
 import tf.msg
 from urdf_parser_py.urdf import URDF
 
+
+def get_value(name,joint_values):
+	
+	for idx, nm in enumerate(joint_values.name):
+		if nm == name:
+			return joint_values.position[idx]
+			
+
+
+
+
+def convert_link_to_transform(joint,index,joint_value,prev):
+	
+	j = joint[index]
+	axis = j.axis
+	
+	x1 = j.origin.rpy[0]
+	y1 = j.origin.rpy[1]
+	z1 = j.origin.rpy[2]
+	
+	x2 = j.origin.xyz[0]
+	y2 = j.origin.xyz[1]
+	z2 = j.origin.xyz[2]
+	
+	
+	rotation = tf.transformations.quaternion_from_euler(x1,y1,z1)
+	
+	rotation = tf.transformations.quaternion_matrix(rotation)
+	traslation = tf.transformations.translation_matrix((x2,y2,z2))
+	
+	
+	transform = tf.transformations.concatenate_matrices(rotation,traslation)
+	
+	#transform = tf.transformations.concatenate_matrices(transform,prev)
+	
+	if j.type != 'fixed':
+		
+		axis = tuple(axis)
+		#axis = (0,0,0)
+		about_axis = tf.transformations.quaternion_about_axis(joint_value, axis)
+	
+		rotation = tf.transformations.quaternion_matrix(about_axis)
+	
+	transform = tf.transformations.concatenate_matrices(rotation,transform)
+	
+	return transform
+
+
+
 """ Starting from a computed transform T, creates a message that can be
 communicated over the ROS wire. In addition to the transform itself, the message
 also specifies who is related by this transform, the parent and the child."""
@@ -126,16 +175,36 @@ class ForwardKinematics(object):
 		all_transforms = tf.msg.tfMessage()
 		# We start with the identity
 		T = tf.transformations.identity_matrix()
+
+		#print 'link -------------------'
+		#print link_names[0]
+		#print 'joint --------------------------'
+		#print joints[0]
 		
-		T = [[1,0,0,2],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
-		T = numpy.array(T)
+		#print joint_values
 		
-		print joints
+		#print joint_values.name
+		#print joint_values.position
+		#print joints[0]
+		
+		#print link_names
+		j1 = get_value('lwr_arm_0_joint',joint_values)
+		j2 = get_value('lwr_arm_1_joint',joint_values)
+		
+		
 				
-		a = convert_to_message(T, link_names[1], 'world_link')
+		a1 = convert_link_to_transform(joints,0,0,T)
+		a2 = convert_link_to_transform(joints,1,j1,a1)
+		a3 = convert_link_to_transform(joints,2,j2,a2)
 		
-				
-		all_transforms.transforms.append(a)
+		b1 = convert_to_message(a1, link_names[0], 'world_link')
+		b2 = convert_to_message(a2, link_names[1], link_names[0])
+		b3 = convert_to_message(a3, link_names[2], link_names[1])
+		
+		all_transforms.transforms.append(b1)
+		all_transforms.transforms.append(b2)
+		
+		
 		
 		return all_transforms
 	   
