@@ -217,7 +217,7 @@ class ForwardKinematics(object):
 		j6 = get_value('lwr_arm_5_joint',joint_values)
 		j7 = get_value('lwr_arm_6_joint',joint_values)
 		
-		#print joint_values
+		print joint_values
 		
 		#print transform_link(joints[0])
 		a1 = tf.transformations.concatenate_matrices(transform_link(joints[0]),T)
@@ -230,23 +230,10 @@ class ForwardKinematics(object):
 		a7 = tf.transformations.concatenate_matrices(transform_link(joints[6]),transform_joint_revolute(j6,joints[6].axis))
 		a8 = tf.transformations.concatenate_matrices(transform_link(joints[7]),transform_joint_revolute(j7,joints[7].axis))
 		
-		
-		#q1 = 1
-		#q2 = 0.79
-		#q3 = 0.5
 		a1 = tf.transformations.translation_matrix((0,0,1))
-		
-		a21 = tf.transformations.quaternion_from_euler(0,0,0.79)
-		a21 = tf.transformations.quaternion_matrix(a21)
-		a22 = tf.transformations.quaternion_from_euler(-1.5708,0,0)
-		a22 = tf.transformations.quaternion_matrix(a22)
-		a2 = tf.transformations.concatenate_matrices(a21,a22)
-		
-		a3 = tf.transformations.translation_matrix((0,0,0.5))
 		#a1 = convert_link_to_transform(joints,0,0,T)
 		#a2 = convert_link_to_transform(joints,1,j1,a1)
 		#a3 = convert_link_to_transform(joints,2,j2,a2)
-		
 		
 		b1 = convert_to_message(a1, link_names[0], 'world_link')
 		b2 = convert_to_message(a2, link_names[1], link_names[0])
@@ -259,9 +246,9 @@ class ForwardKinematics(object):
 		
 		
 		
-		all_transforms.transforms.append(b1)
-		all_transforms.transforms.append(b2)
-		all_transforms.transforms.append(b3)
+		#all_transforms.transforms.append(b1)
+		#all_transforms.transforms.append(b2)
+		#all_transforms.transforms.append(b3)
 		#all_transforms.transforms.append(b4)
 		#all_transforms.transforms.append(b5)
 		#all_transforms.transforms.append(b6)
