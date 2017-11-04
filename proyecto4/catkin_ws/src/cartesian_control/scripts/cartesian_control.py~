@@ -33,7 +33,7 @@ def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,red_contr
 
 	b_T_ee_current_inverse = tf.transformations.inverse_matrix(b_T_ee_current)
 	
-	deltaX = tf.transformations.concatenate_matrices(b_T_ee_desired,b_T_ee_current_inverse)
+	deltaX = numpy.dot(b_T_ee_desired,b_T_ee_current_inverse)
 	
 	translation_delta_x = deltaX[:,3]
 	
@@ -75,19 +75,51 @@ def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,red_contr
 	
 	Vee = [translation_delta[0],translation_delta[1],translation_delta[2],rotation_delta_x[0],rotation_delta_x[1],rotation_delta_x[2]]
 	Vee = numpy.array(Vee)
-	
+	c = numpy.empty([7,6])
 	#jacobian
+	j = 0
+	#print 'ss' + str(num_joints)
+	for joint_n in joint_transforms:
+		
+		
+		#joint_n = joint_transforms[2]
+		inv_join = tf.transformations.inverse_matrix(joint_n)
+		jTee = numpy.dot(b_T_ee_current,inv_join)
 	
-	#for joint_n in joint_transforms:
-	joint_n = joint_transforms[2]
-	inv_join = tf.transformations.inverse_matrix(joint_n)
-	jTee = tf.transformations.concatenate_matrices(b_T_ee_current,inv_join)
-	jTrot_ee = [[jTee[0][0],jTee[0][1],jTee[0][2]],[jTee[1][0],jTee[1][1],jTee[1][2]],[jTee[2][0],jTee[2][1],jTee[2][2]]]
-	print jTrot_ee
-		
-		
+		jTee1 = numpy.delete(jTee,3,0)
+		jTee2 = numpy.delete(jTee1,numpy.s_[-1:],1)
+		jTeeRotInv = tf.transformations.inverse_matrix(jTee2)
+	
+		jTeeTransf = jTee[:,3]
+	
+		s_matrix = S_matrix(jTeeTransf)
+	
+	
+		#pepe = tf.transformations.concatenate_matrices(jTeeRotInv,s_matrix)
+		pepe = numpy.dot((-1)*jTeeRotInv,s_matrix)
 
-	dq = [0.5,0.5,0.5,0.5,0.5,0.5,0.5]
+		pepe1 = pepe[:,2]
+		pepe2 = jTeeRotInv[:,2]
+		pepe3 = numpy.concatenate((pepe1,pepe2),0)
+		#print pepe3
+		if j == 0:
+			jac = numpy.column_stack(pepe3)
+			
+		else:
+			pepe4 = numpy.column_stack(pepe3)
+			numpy.append(jac,pepe4,axis=1)
+
+		c[j] = pepe3
+		j = j + 1
+		
+	jac = numpy.column_stack(c)
+	#jac_inv = tf.transformations.inverse_matrix(jac)
+	jac_inv = numpy.linalg.pinv(jac,rcond=1e-15)
+	
+	dq1 = numpy.dot(jac_inv,Vee)
+	print dq1
+
+	#dq = [0.5,0.5,0.5,0.5,0.5,0.5,0.5]
 	#----------------------------------------------------------------------
 	return dq
     
