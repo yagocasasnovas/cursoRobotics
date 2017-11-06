@@ -22,93 +22,89 @@ def S_matrix(w):
 	S[2,1] =  w[0]
 	return S
 
-#ESTA ES LA BUENA!!!
 # This is the function that must be filled in as part of the Project.
 def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,red_control, q_current, q0_desired):
 	num_joints = len(joint_transforms)
-	
 	dq = numpy.zeros(num_joints)
-	
 	#-------Fill in your code here ---------------------------
-	p = 10
-	
+
+	Kt = 1
+	Kr = 1
+
 	b_T_ee_current_inverse = tf.transformations.inverse_matrix(b_T_ee_current)
 	
-	#ee_T_desired = numpy.dot(b_T_ee_desired,b_T_ee_current_inverse)
+	deltaX = numpy.dot(b_T_ee_desired,b_T_ee_current_inverse)
 	
-	ee_T_desired = numpy.dot(b_T_ee_current_inverse,b_T_ee_desired)
+	translation_delta_x = deltaX[:,3]
 	
-	#print ee_T_desired
+	translation_delta = [translation_delta_x[0],translation_delta_x[1],translation_delta_x[2]]
 	
-	delta_x = ee_T_desired[:,3]
+	translation_delta = numpy.array(translation_delta)
 	
-	#print delta_x
-	
-	delta_x = delta_x[:3]
-	
-	#print delta_x
-	
-	norm_X = numpy.linalg.norm(delta_x)
+	norm_X = numpy.linalg.norm(translation_delta)
 	
 	if norm_X > 0.1:
 		
-		delta_x = delta_x * 0.1 / norm_X
+		translation_delta = translation_delta * 0.1 / norm_X
 	
-	#print delta_x
+	angle,axis = rotation_from_matrix(deltaX)
+	rotation_delta_x = tf.transformations.euler_from_matrix(deltaX)
+
+	rotation_delta_x = numpy.array(rotation_delta_x)
 	
-	angle,axis = rotation_from_matrix(ee_T_desired)
-	delta_W = tf.transformations.euler_from_matrix(ee_T_desired)
-	
-	#print delta_W
-	delta_W = numpy.array(delta_W)
-	#print delta_W
-	norm_W = numpy.linalg.norm(delta_W)
+	norm_W = numpy.linalg.norm(rotation_delta_x)
 	
 	if norm_W > 1:
-		delta_W = delta_W / norm_W
-	#print delta_W
-	Vee = numpy.concatenate((delta_x,delta_W),0)
-	#print Vee
-	Vee = p*Vee	
+		rotation_delta_x = rotation_delta_x / norm_W
+	
+	#Vee = [translation_delta[0],translation_delta[1],translation_delta[2],rotation_delta_x[0],rotation_delta_x[1],rotation_delta_x[2]]
+	
+	
+	
+	Vee = numpy.concatenate((translation_delta,rotation_delta_x),0)
+	#Vee = [translation_delta[0],translation_delta[1],translation_delta[2],0,0,0]
+	
+	
+	Vee = numpy.array(Vee)
 	#print Vee
 	c = numpy.empty([7,6])
 	#jacobian
 	j = 0
 	#print 'ss' + str(num_joints)
-	#for j in range(0,num_joints-1):
 	for joint_n in joint_transforms:
 		
-		#inv_join = tf.transformations.inverse_matrix(joint_transforms[j])
+		
+		#joint_n = joint_transforms[2]
 		inv_join = tf.transformations.inverse_matrix(joint_n)
 		jTee = numpy.dot(b_T_ee_desired,inv_join)
-		jTee = numpy.dot(inv_join,b_T_ee_desired)
 	
 		jTee1 = numpy.delete(jTee,3,0)
 		jTee2 = numpy.delete(jTee1,numpy.s_[-1:],1)
 		jTeeRotInv = tf.transformations.inverse_matrix(jTee2)
 	
-		
-		jTeeRotInvNeg = (-1)*jTeeRotInv
-		
 		jTeeTransf = jTee[:,3]
 	
 		s_matrix = S_matrix(jTeeTransf)
-		
+	
+	
 		#pepe = tf.transformations.concatenate_matrices(jTeeRotInv,s_matrix)
-		pepe = numpy.dot(jTeeRotInvNeg,s_matrix)
-		#pepe = numpy.dot(s_matrix,(-1)*jTeeRotInv)
+		pepe = numpy.dot((-1)*jTeeRotInv,s_matrix)
 
 		pepe1 = pepe[:,2]
 		pepe2 = jTeeRotInv[:,2]
 		pepe3 = numpy.concatenate((pepe1,pepe2),0)
-		#print j
 		#print pepe3
+		if j == 0:
+			jac = numpy.column_stack(pepe3)
+			
+		else:
+			pepe4 = numpy.column_stack(pepe3)
+			numpy.append(jac,pepe4,axis=1)
+
 		c[j] = pepe3
 		j = j + 1
-	#print "h"
-	
+		
 	jac = numpy.column_stack(c)
-	
 	#jac_inv = tf.transformations.inverse_matrix(jac)
 	jac_inv = numpy.linalg.pinv(jac,rcond=0.0001)
 	
@@ -118,7 +114,7 @@ def cartesian_control(joint_transforms, b_T_ee_current, b_T_ee_desired,red_contr
 	
 	if norm_dq > 1:
 		dq = dq / norm_dq
-	#print dq
+	#print dq1
 
 	#dq = [0.5,0.5,0.5,0.5,0.5,0.5,0.5]
 	#----------------------------------------------------------------------
