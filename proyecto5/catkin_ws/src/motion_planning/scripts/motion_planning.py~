@@ -51,7 +51,8 @@ def convert_from_trans_message(msg):
 											   msg.translation.z))
 	return numpy.dot(T,R)
    
-   
+
+
 
 class MoveArm(object):
 
@@ -187,8 +188,49 @@ class MoveArm(object):
 		req.robot_state.joint_state = current_joint_state
 		res = self.state_valid_service(req)
 		return res.valid
+	
+	
+	class node:
+		def __init__(self):
+			self.id = -1
+			self.position = numpy.zeros(7)
+			self.previous_node_id = -1
+	
+	def check_colision(self,a,b):
 		
-	 
+		c = a - b
+		
+		min_n = 10000
+		k = -1
+		for j in range(7):
+			#print c[j]
+			
+			if c[j]/self.q_sample[j] < min_n:
+				min_n = c[j]/self.q_sample[j]
+				k = j
+			
+		sampling = min_n - 1
+		
+		
+		
+	
+	
+	def calculate_distance(self,pos1,pos2):
+		a = (pos1[0]-pos2[0])*(pos1[0]-pos2[0]) + (pos1[1]-pos2[1])*(pos1[1]-pos2[1]) + (pos1[2]-pos2[2])*(pos1[2]-pos2[2]) + (pos1[3]-pos2[3])*(pos1[3]-pos2[3]) + (pos1[4]-pos2[4])*(pos1[4]-pos2[4]) + (pos1[5]-pos2[5])*(pos1[5]-pos2[5]) + (pos1[6]-pos2[6])*(pos1[6]-pos2[6])
+		return numpy.sqrt(a)
+		
+	def closest_node(self,listn,pos,pre_dist):
+		
+		closest_distance = 1000000
+		for n in listn:
+			dist = self.calculate_distance(n.position,pos)
+			if dist < closest_distance:
+				closest_distance = dist
+				closest_node_return = n
+		if closest_distance > pre_dist:
+			return n
+		else:
+			return -1
 		
 	def motion_plan(self, q_start, q_goal, q_min, q_max):
 		
@@ -197,18 +239,30 @@ class MoveArm(object):
 		node_list = []
 		node_set = ()
 		
+		pre_dist = 0.5
+		
 		loop = True
 		count = 0
 		threshold = 2
-		print q_start
-		print q_goal
+		
+		node_start = self.node()
+		node_start.id = -1
+		node_start.position = q_start
+		
+		node_goal = self.node()
+		node_goal.id = threshold
+		node_goal.position = q_goal
+		
+		node_list.append(node_start)
 		
 		while loop:
 			
-			node_temp = node()
+
 			
 			if count > threshold:
 				break
+			
+			#1. generate random point
 			
 			random_point = numpy.zeros(7)
 			
@@ -218,11 +272,54 @@ class MoveArm(object):
 				
 				random_point[q] = length * random.random()
 				random_point[q] = random_point[q] - abs(q_min[q])
-				
-			node_temp.id = count
-			node_temp.position = random_point
 			
-			closest_node_temp = closest_node(node_list,node_temp)
+			print self.is_state_valid(random_point)
+			
+			#2. find closest node
+			
+			
+			closest_node_temp = self.closest_node(node_list,random_point,pre_dist)
+			
+			if closest_node_temp == -1:
+				
+				break
+			
+			#raw_input('press')
+			
+			
+			#new point at pre_dist
+			#vector
+			vector = random_point - closest_node_temp.position
+			#normalized
+			norm = numpy.linalg.norm(vector)
+			
+			vector = vector / norm*pre_dist
+			
+			new_node_pos = closest_node_temp.position + vector
+			
+			
+			
+			#check colision free
+			
+			self.check_colision(new_node_pos,closest_node_temp.position)
+			
+			#append_node
+			
+			node_temp = self.node()
+			node_temp.id = count
+			node_temp.position = new_node_pos
+			node_temp.previous_node_id = closest_node_temp.id
+			
+
+			
+			node_list.append(node_temp)
+			
+			
+			
+			
+			
+			
+			
 		
 		
 		q_list = [q_start, q_goal]
@@ -230,25 +327,11 @@ class MoveArm(object):
 		return q_list
 	
 	
-	class node:
-		
-		id = -1
-		position = numpy.zeros(7)
-		previous_node_id = -1
+
 	
-	def closest_node(listn,new_node):
-		closest_node_return = -1
-		closest_distance = 1000000
-		for n in listn:
-			dist = calculate_distance(n,new_node)
-			if dist < closest_distance_
-				closest_distance = dist
-				closest_node_return = n
-		return n
+
 	
-	def calculate_distance(node1,node2):
-		a = node1.position[0]*node2.position[0] + node1.position[1]*node2.position[1] + node1.position[2]*node2.position[2] + node1.position[3]*node2.position[3] + node1.position[4]*node2.position[4] + node1.position[5]*node2.position[5] + + node1.position[6]*node2.position[6]
-		return numpy.sqrt(a)
+
 	
 	def create_trajectory(self, q_list, v_list, a_list, t):
 		joint_trajectory = trajectory_msgs.msg.JointTrajectory()
