@@ -196,9 +196,33 @@ class MoveArm(object):
 			self.position = numpy.zeros(7)
 			self.previous_node_id = -1
 	
+	
+	def print_node(self,n):
+		print "node:"
+		print n.id
+		print n.position
+		print n.previous_node_id
+		print "end node"
+	
+	def generate_path(self,node_list,node_goal,node_start):
+		K = True
+		path = []
+		nod = node_goal
+		while K:
+			
+			path.append(nod.position)
+			if nod.id == -1:
+				K = False
+			nod = node_list[nod.previous_node_id] 
+		
+		path1 = list(reversed(path))
+		
+		return path1
+	
 	def check_colision(self,a,b):
 		
-		c = a - b
+		punto_no_valido = 0
+		c = b - a
 		
 		min_n = 10000
 		k = -1
@@ -209,10 +233,32 @@ class MoveArm(object):
 				min_n = c[j]/self.q_sample[j]
 				k = j
 			
-		sampling = min_n - 1
+		n_sampling = abs(int(min_n))
+
+		if n_sampling == 0:
+			
+			return False
 		
+		distance = self.calculate_distance(a,b)
+		distance_n = distance / n_sampling
 		
+		samp_point = a
+		norm_c = numpy.linalg.norm(c)
+		for n in range(n_sampling):
+			
+			vector_c = c / norm_c*distance_n
+			
+			samp_point = samp_point + vector_c
+			
+			if self.is_state_valid(samp_point) is False:
+				punto_no_valido = 1
+				
+				break
 		
+		if punto_no_valido == 1:
+			return False
+		
+		return True
 	
 	
 	def calculate_distance(self,pos1,pos2):
@@ -243,20 +289,27 @@ class MoveArm(object):
 		
 		loop = True
 		count = 0
-		threshold = 2
+		threshold = 1000000
 		
 		node_start = self.node()
 		node_start.id = -1
 		node_start.position = q_start
 		
 		node_goal = self.node()
-		node_goal.id = threshold
+		node_goal.id = -2
 		node_goal.position = q_goal
 		
 		node_list.append(node_start)
 		
+		final_list = []
+		print "init"
+		print node_start.position
+		print node_goal.position
+		
 		while loop:
 			
+			print count
+			print len(node_list)
 
 			
 			if count > threshold:
@@ -273,17 +326,25 @@ class MoveArm(object):
 				random_point[q] = length * random.random()
 				random_point[q] = random_point[q] - abs(q_min[q])
 			
+			print random_point
+			
 			if self.is_state_valid(random_point) is False:
-				break
+				print "random colision"
+				count = count + 1
+				continue
 			
 			#2. find closest node
-			
+			#print "random"
+			#print random_point
 			
 			closest_node_temp = self.closest_node(node_list,random_point,pre_dist)
 			
 			if closest_node_temp == -1:
-				
-				break
+				print "closest distance"
+				count = count + 1
+				continue
+			#print "closest"
+			#print closest_node_temp.position
 			
 			#raw_input('press')
 			
@@ -298,11 +359,19 @@ class MoveArm(object):
 			
 			new_node_pos = closest_node_temp.position + vector
 			
+			#print "new node"
+			#print new_node_pos
+			
 			
 			
 			#check colision free
 			
-			self.check_colision(new_node_pos,closest_node_temp.position)
+			result = self.check_colision(new_node_pos,closest_node_temp.position)
+			
+			if result == False:
+				print "check colision"
+				count = count + 1
+				continue
 			
 			#append_node
 			
@@ -311,21 +380,26 @@ class MoveArm(object):
 			node_temp.position = new_node_pos
 			node_temp.previous_node_id = closest_node_temp.id
 			
-
+			#self.print_node(node_temp)
 			
 			node_list.append(node_temp)
 			
 			
+			if self.check_colision(node_temp.position,node_goal.position) == True:
+				node_goal.previous_node_id = node_temp.id
+				node_list.append(node_goal)
+				final_list = self.generate_path(node_list,node_goal,node_start)
+				print "end"
+				break
 			
 			
-			
-			
+			count = count + 1
 			
 		
-		
-		q_list = [q_start, q_goal]
+		print final_list
+		#q_list = [q_start, q_goal]
 
-		return q_list
+		return final_list
 	
 	
 
