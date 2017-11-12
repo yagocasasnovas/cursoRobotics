@@ -17,6 +17,8 @@ import rospy
 import sensor_msgs.msg
 import tf
 import trajectory_msgs.msg
+from random import randrange, uniform
+
 
 def convert_to_message(T):
 	t = geometry_msgs.msg.Pose()
@@ -210,6 +212,31 @@ class MoveArm(object):
 		print n.previous_node_id
 		print "end node"
 	
+	def clear_path(self,final):
+		#print "clear_path"
+		#print "original length: " + str(len(final))
+		final_cleared = []
+		final_cleared.append(final[len(final)-1])
+		final_cleared.append(final[len(final)-2])
+		
+		for n in reversed(range(1,len(final)-2)):
+			if self.check_colision(final[0],final[n],0) is False:
+				
+				final_cleared.append(final[n-1])
+			else:
+				break
+	
+		final_cleared.append(final[0])
+		
+		#print "final length"
+		#print len(final_cleared)
+		#print final_cleared
+		final_cleared2 = []
+		for n in reversed(range(len(final_cleared))):
+			final_cleared2.append(final_cleared[n])
+		return final_cleared2
+
+	
 	def generate_path(self,node_list,node_goal,node_start):
 		j = 0
 		#print "goal"
@@ -327,24 +354,16 @@ class MoveArm(object):
 				if a[j] < b[j] and sp[j] >= b[j]:
 					sp[j] = b[j]
 					continue
-				if j == ss:
-					print "spj, sppreviousj , priht hhj"
-					print str(sp[j]) + " " + str(sp_previous[j]) + " " + str(kk[j]) + " " + str(hh[j])
+				
 				
 				if abs(kk[j]) < self.q_sample[j]:
 					sp[j] = sp_previous[j]
 					kk[j] = kk[j]+hh[j]
-					if j == ss:
-						print "delta"
-						print kk[j]
-						print hh[j]
-						print self.q_sample[j]
-						print "abort"
+					
 				else:
 					sp_previous[j] = sp[j]
 					kk[j] = hh[j]
-					if j == ss:
-						print "ok"
+					
 				#raw_input("jj loop press key")
 			#print "sample point at iteration " + str(n)
 			#print sp
@@ -398,13 +417,15 @@ class MoveArm(object):
 	def motion_plan(self, q_start, q_goal, q_min, q_max):
 		
 		# Replace this with your code
-		
+
 		node_list = []
-		node_set = ()
+
+		if self.check_colision(q_start,q_goal,0) is True:
+			ll = [q_start,q_goal]
+			return ll
 		
-		
-		self.test.append(q_start)
-		pre_dist = 0.8
+		#self.test.append(q_start)
+		pre_dist = 0.5
 		
 		loop = True
 		count = 0
@@ -428,7 +449,7 @@ class MoveArm(object):
 		#print ""
 		#raw_input()
 		while loop:
-			print "loop " + str(count)
+			#print "loop " + str(count)
 			#print ""
 			
 			#print len(node_list)
@@ -443,10 +464,7 @@ class MoveArm(object):
 			
 			for q in range(7):
 
-				length = abs(q_max[q]) + abs(q_min[q])
-				
-				random_point[q] = length * random.random()
-				random_point[q] = random_point[q] - abs(q_min[q])
+				random_point[q] = uniform(q_min[q], q_max[q])
 			#print "random point"
 			#print random_point
 			#print ""
@@ -455,19 +473,18 @@ class MoveArm(object):
 			if self.is_state_valid(random_point) is False:
 				#print "random colision"
 				#print ""
-				count = count + 1
+				
 				continue
 			
 			#2. find closest node
-			#print "random"
-			#print random_point
+
 			
 			closest_node_temp = self.closest_node(node_list,random_point,pre_dist)
 			
 			if closest_node_temp == -1:
 				#print "closest distance"
 				#print ""
-				count = count + 1
+				
 				continue
 			#print "closest"
 			#print closest_node_temp.position
@@ -485,7 +502,7 @@ class MoveArm(object):
 			vector = vector / norm*pre_dist
 			
 			new_node_pos = closest_node_temp.position + vector
-			self.test.append(new_node_pos)
+			
 			
 			#print "new node"
 			#print new_node_pos
@@ -493,7 +510,7 @@ class MoveArm(object):
 			#print ""
 			
 			#check colision free
-			cco = [ 0.05672705,  0.33027653, -0.2771045,  -0.25668123,  0.31950496, -0.50404439,  0.16995038]
+			
 			
 			#result = self.check_colision(cco,closest_node_temp.position,1)
 			result = self.check_colision(new_node_pos,closest_node_temp.position,1)
@@ -502,11 +519,11 @@ class MoveArm(object):
 			if result == False:
 				#print "check colision"
 				#print ""
-				count = count + 1
+				
 				continue
 			
 			#append_node
-			#print "good node"
+			
 			#raw_input("continue node")
 			node_temp = self.node()
 			node_temp.id = count
@@ -516,22 +533,21 @@ class MoveArm(object):
 			#self.print_node(node_temp)
 			
 			node_list.append(node_temp)
-			
-			
-			
+			print len(node_list)
 			
 			if self.check_colision(node_temp.position,node_goal.position,0) == True:
 				node_goal.previous_node_id = node_temp.id
 				node_goal.id = count + 1
 				node_list.append(node_goal)
 				final_list = self.generate_path(node_list,node_goal,node_start)
+				#print "final list"
+				#print final_list
 				#final_list = self.clear_path(final_list)
-				print "final list"
-				for n in node_list:
-					self.print_node(n)
-				print ""
-				print "FINISH"
-				#raw_input("antes de finish")
+				#raw_input("pepe")
+				#print "final list cleared"
+				#print final_list
+				
+				
 				#print "longitud "+str(len(final_list))
 				break
 			
@@ -540,12 +556,12 @@ class MoveArm(object):
 			#raw_input()
 			
 		
-		print "end ------------"
+		#print "end ------------"
 		#pepe = []
 		#q_list = [q_start, q_goal]
 
 		return final_list
-		test1 = self.test
+		
 		#return test1
 	
 	
