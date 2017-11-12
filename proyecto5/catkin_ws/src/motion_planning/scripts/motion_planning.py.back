@@ -240,10 +240,6 @@ class MoveArm(object):
 		
 		punto_no_valido = 0
 		
-		#print "entering check colision" + str(t)
-		#print "point a"
-		#print a
-		#print "point b"
 		#print b
 		#print a
 		
@@ -254,126 +250,53 @@ class MoveArm(object):
 		#print self.q_sample
 		#raw_input()
 		
-		max_n = -1
+		min_n = 1000000
 		k = -1
 		for j in range(7):
 			#print c[j]
 			#print self.q_sample[j]
 			pepe = c[j]/self.q_sample[j]
 			#print abs(pepe)
-			if abs(pepe) > max_n:
-				max_n = abs(pepe)
+			if abs(pepe) < min_n:
+				min_n = abs(pepe)
 				k = j
 				#print "minacum"
 				#print min_n
 			#raw_input()
-		samplers_int = []
-		samplers = c / self.q_sample
-		for g in samplers:
-			samplers_int.append(abs(int(g)))
-		#print "samplers"
-		#print samplers_int
-		#print ""
-		
-		n_sampling = abs(int(max_n))
-		#print "sampling number " + str(n_sampling) + " joint: " + str(k)
-		#print ""
-		#print "vector a"
-		#print a
-		#print "vector b"
-		#print ""
-		#print b
-		#print ""
-		#print "vector c"
-		#print c
-		#print ""
-		#print "samples"
-		#print self.q_sample
-		#print ""
+			
+		n_sampling = abs(int(min_n))
+		print "sampling number" + str(n_sampling)
+		print ""
+		#print n_sampling
 		#raw_input()
-		
-
+		if n_sampling == 0:
+			
+			return False
+			
+		if n_sampling == 1:
+			return True
 		
 		distance = self.calculate_distance(a,b)
-		#print "distance " + str(distance)
+		print "distance " + str(distance)
 		distance_n = distance / n_sampling
-		#print "distance sampling " + str(distance_n)
-		#samp_point = a
-		hh = numpy.zeros(7)
-		sp_previous = a
-		sp = numpy.zeros(7)
-		#norm_c = numpy.linalg.norm(c)
-		hh = c/n_sampling
-		kk = hh
-		#print "total samplers"
-		#print n_sampling
-		#print ""
-
-		ss = -1
-		for n in range(1,n_sampling):
-			
-			#print "number of sample"
-			#print n
-			#print ""
-			
-			for j in range(7):
-				#print "j"
-				#print j
-				#print ""
-				sp[j] = sp_previous[j] + kk[j]
-				if a[j] > b[j] and sp[j] <= b[j]:
-					sp[j] = b[j]
-					continue
-				if a[j] < b[j] and sp[j] >= b[j]:
-					sp[j] = b[j]
-					continue
-				if j == ss:
-					print "spj, sppreviousj , priht hhj"
-					print str(sp[j]) + " " + str(sp_previous[j]) + " " + str(kk[j]) + " " + str(hh[j])
-				
-				if abs(kk[j]) < self.q_sample[j]:
-					sp[j] = sp_previous[j]
-					kk[j] = kk[j]+hh[j]
-					if j == ss:
-						print "delta"
-						print kk[j]
-						print hh[j]
-						print self.q_sample[j]
-						print "abort"
-				else:
-					sp_previous[j] = sp[j]
-					kk[j] = hh[j]
-					if j == ss:
-						print "ok"
-				#raw_input("jj loop press key")
-			#print "sample point at iteration " + str(n)
-			#print sp
-			#print ""
-			#print "previous"
-			#print sp_previous
-			#print ""
-			#vector_c = c * (n+1) / norm_c*distance_n
-			#juan = samp_point + vector_c
-			
-			#print "sampler"
-			#print sp
-			#print ""
-			#print "destination b"
-			#print b
-			#print ""
+		print "distance sampling " + str(distance_n)
+		samp_point = a
 		
-			#raw_input("sampler loop press")
+		norm_c = numpy.linalg.norm(c)
+		
+		for n in range(n_sampling):
 			
-			if self.is_state_valid(sp) is False:
+			vector_c = c * (n+1) / norm_c*distance_n
+			juan = samp_point + vector_c
+			
+			if self.is_state_valid(juan) is False:
 				punto_no_valido = 1
-				#print "motherfucker!!!"
+				print "motherfucker!!!"
 				break
-			#raw_input()
+		
 		if punto_no_valido == 1:
 			#print "colision!!!!"
 			return False
-		
-		#raw_input("end check colision")
 		
 		return True
 	
@@ -425,11 +348,11 @@ class MoveArm(object):
 		#print "init"
 		#print q_start
 		#print q_goal
-		#print ""
+		
 		#raw_input()
 		while loop:
-			#print "loop " + str(count)
-			#print ""
+			print "loop" + str(count)
+			print ""
 			
 			#print len(node_list)
 
@@ -447,14 +370,13 @@ class MoveArm(object):
 				
 				random_point[q] = length * random.random()
 				random_point[q] = random_point[q] - abs(q_min[q])
-			#print "random point"
+			
 			#print random_point
-			#print ""
 			#self.test.append(random_point)
 			
 			if self.is_state_valid(random_point) is False:
-				#print "random colision"
-				#print ""
+				print "random colision"
+				print ""
 				count = count + 1
 				continue
 			
@@ -465,13 +387,13 @@ class MoveArm(object):
 			closest_node_temp = self.closest_node(node_list,random_point,pre_dist)
 			
 			if closest_node_temp == -1:
-				#print "closest distance"
-				#print ""
+				print "closest distance"
+				print ""
 				count = count + 1
 				continue
 			#print "closest"
 			#print closest_node_temp.position
-			#print ""
+			
 			#raw_input('press')
 			
 			
@@ -490,24 +412,20 @@ class MoveArm(object):
 			#print "new node"
 			#print new_node_pos
 			#print self.calculate_distance(new_node_pos,random_point)
-			#print ""
+			
 			
 			#check colision free
-			cco = [ 0.05672705,  0.33027653, -0.2771045,  -0.25668123,  0.31950496, -0.50404439,  0.16995038]
 			
-			#result = self.check_colision(cco,closest_node_temp.position,1)
 			result = self.check_colision(new_node_pos,closest_node_temp.position,1)
 			
-			
 			if result == False:
-				#print "check colision"
-				#print ""
+				print "check colision"
+				print ""
 				count = count + 1
 				continue
 			
 			#append_node
-			#print "good node"
-			#raw_input("continue node")
+			
 			node_temp = self.node()
 			node_temp.id = count
 			node_temp.position = new_node_pos
@@ -518,21 +436,14 @@ class MoveArm(object):
 			node_list.append(node_temp)
 			
 			
-			
-			
 			if self.check_colision(node_temp.position,node_goal.position,0) == True:
 				node_goal.previous_node_id = node_temp.id
 				node_goal.id = count + 1
 				node_list.append(node_goal)
 				final_list = self.generate_path(node_list,node_goal,node_start)
 				#final_list = self.clear_path(final_list)
-				print "final list"
-				for n in node_list:
-					self.print_node(n)
-				print ""
 				print "FINISH"
-				#raw_input("antes de finish")
-				#print "longitud "+str(len(final_list))
+				print "longitud "+str(len(final_list))
 				break
 			
 			
@@ -540,10 +451,10 @@ class MoveArm(object):
 			#raw_input()
 			
 		
-		print "end ------------"
+		#print "end ------------"
 		#pepe = []
 		#q_list = [q_start, q_goal]
-
+		self.test.append(q_goal)
 		return final_list
 		test1 = self.test
 		#return test1

@@ -60,6 +60,7 @@ class MoveArm(object):
 		print "Motion Planning Initializing..."
 		# Prepare the mutex for synchronization
 		self.mutex = Lock()
+		self.test = []
 
 		# Some info and conventions about the robot that we hard-code in here
 		# min and max joint values are not read in Python urdf, so we must hard-code them here
@@ -195,7 +196,12 @@ class MoveArm(object):
 			self.id = -1
 			self.position = numpy.zeros(7)
 			self.previous_node_id = -1
-	
+			
+	def get_node_by_id(self,id1,nlist):
+		
+		for n in nlist:
+			if n.id == id1:
+				return n
 	
 	def print_node(self,n):
 		print "node:"
@@ -205,58 +211,169 @@ class MoveArm(object):
 		print "end node"
 	
 	def generate_path(self,node_list,node_goal,node_start):
+		j = 0
+		#print "goal"
+		#self.print_node(node_goal)
+		for n in node_list:
+			#print ".---."
+			#print j
+			#self.print_node(n)
+			j = j + 1
+		
 		K = True
 		path = []
 		nod = node_goal
 		while K:
 			
 			path.append(nod.position)
+			nod = self.get_node_by_id(nod.previous_node_id,node_list)
+			#nod = node_list[nod.previous_node_id]
 			if nod.id == -1:
 				K = False
-			nod = node_list[nod.previous_node_id] 
+			 
 		
 		path1 = list(reversed(path))
 		
 		return path1
 	
-	def check_colision(self,a,b):
+	def check_colision(self,a,b,t):
 		
 		punto_no_valido = 0
+		
+		#print "entering check colision" + str(t)
+		#print "point a"
+		#print a
+		#print "point b"
+		#print b
+		#print a
+		
 		c = b - a
 		
-		min_n = 10000
+		#print c
+		
+		#print self.q_sample
+		#raw_input()
+		
+		max_n = -1
 		k = -1
 		for j in range(7):
 			#print c[j]
-			
-			if c[j]/self.q_sample[j] < min_n:
-				min_n = c[j]/self.q_sample[j]
+			#print self.q_sample[j]
+			pepe = c[j]/self.q_sample[j]
+			#print abs(pepe)
+			if abs(pepe) > max_n:
+				max_n = abs(pepe)
 				k = j
-			
-		n_sampling = abs(int(min_n))
+				#print "minacum"
+				#print min_n
+			#raw_input()
+		samplers_int = []
+		samplers = c / self.q_sample
+		for g in samplers:
+			samplers_int.append(abs(int(g)))
+		#print "samplers"
+		#print samplers_int
+		#print ""
+		
+		n_sampling = abs(int(max_n))
+		#print "sampling number " + str(n_sampling) + " joint: " + str(k)
+		#print ""
+		#print "vector a"
+		#print a
+		#print "vector b"
+		#print ""
+		#print b
+		#print ""
+		#print "vector c"
+		#print c
+		#print ""
+		#print "samples"
+		#print self.q_sample
+		#print ""
+		#raw_input()
+		
 
-		if n_sampling == 0:
-			
-			return False
 		
 		distance = self.calculate_distance(a,b)
+		#print "distance " + str(distance)
 		distance_n = distance / n_sampling
-		
-		samp_point = a
-		norm_c = numpy.linalg.norm(c)
-		for n in range(n_sampling):
+		#print "distance sampling " + str(distance_n)
+		#samp_point = a
+		hh = numpy.zeros(7)
+		sp_previous = a
+		sp = numpy.zeros(7)
+		#norm_c = numpy.linalg.norm(c)
+		hh = c/n_sampling
+		kk = hh
+		#print "total samplers"
+		#print n_sampling
+		#print ""
+
+		ss = -1
+		for n in range(1,n_sampling):
 			
-			vector_c = c / norm_c*distance_n
+			#print "number of sample"
+			#print n
+			#print ""
 			
-			samp_point = samp_point + vector_c
-			
-			if self.is_state_valid(samp_point) is False:
-				punto_no_valido = 1
+			for j in range(7):
+				#print "j"
+				#print j
+				#print ""
+				sp[j] = sp_previous[j] + kk[j]
+				if a[j] > b[j] and sp[j] <= b[j]:
+					sp[j] = b[j]
+					continue
+				if a[j] < b[j] and sp[j] >= b[j]:
+					sp[j] = b[j]
+					continue
+				if j == ss:
+					print "spj, sppreviousj , priht hhj"
+					print str(sp[j]) + " " + str(sp_previous[j]) + " " + str(kk[j]) + " " + str(hh[j])
 				
-				break
+				if abs(kk[j]) < self.q_sample[j]:
+					sp[j] = sp_previous[j]
+					kk[j] = kk[j]+hh[j]
+					if j == ss:
+						print "delta"
+						print kk[j]
+						print hh[j]
+						print self.q_sample[j]
+						print "abort"
+				else:
+					sp_previous[j] = sp[j]
+					kk[j] = hh[j]
+					if j == ss:
+						print "ok"
+				#raw_input("jj loop press key")
+			#print "sample point at iteration " + str(n)
+			#print sp
+			#print ""
+			#print "previous"
+			#print sp_previous
+			#print ""
+			#vector_c = c * (n+1) / norm_c*distance_n
+			#juan = samp_point + vector_c
+			
+			#print "sampler"
+			#print sp
+			#print ""
+			#print "destination b"
+			#print b
+			#print ""
 		
+			#raw_input("sampler loop press")
+			
+			if self.is_state_valid(sp) is False:
+				punto_no_valido = 1
+				#print "motherfucker!!!"
+				break
+			#raw_input()
 		if punto_no_valido == 1:
+			#print "colision!!!!"
 			return False
+		
+		#raw_input("end check colision")
 		
 		return True
 	
@@ -274,7 +391,7 @@ class MoveArm(object):
 				closest_distance = dist
 				closest_node_return = n
 		if closest_distance > pre_dist:
-			return n
+			return closest_node_return
 		else:
 			return -1
 		
@@ -285,11 +402,14 @@ class MoveArm(object):
 		node_list = []
 		node_set = ()
 		
-		pre_dist = 0.5
+		
+		self.test.append(q_start)
+		pre_dist = 0.8
 		
 		loop = True
 		count = 0
-		threshold = 1000000
+		threshold =	 1000000
+		#threshold = 0
 		
 		node_start = self.node()
 		node_start.id = -1
@@ -302,14 +422,16 @@ class MoveArm(object):
 		node_list.append(node_start)
 		
 		final_list = []
-		print "init"
-		print node_start.position
-		print node_goal.position
-		
+		#print "init"
+		#print q_start
+		#print q_goal
+		#print ""
+		#raw_input()
 		while loop:
+			print "loop " + str(count)
+			#print ""
 			
-			print count
-			print len(node_list)
+			#print len(node_list)
 
 			
 			if count > threshold:
@@ -325,11 +447,14 @@ class MoveArm(object):
 				
 				random_point[q] = length * random.random()
 				random_point[q] = random_point[q] - abs(q_min[q])
-			
-			print random_point
+			#print "random point"
+			#print random_point
+			#print ""
+			#self.test.append(random_point)
 			
 			if self.is_state_valid(random_point) is False:
-				print "random colision"
+				#print "random colision"
+				#print ""
 				count = count + 1
 				continue
 			
@@ -340,12 +465,13 @@ class MoveArm(object):
 			closest_node_temp = self.closest_node(node_list,random_point,pre_dist)
 			
 			if closest_node_temp == -1:
-				print "closest distance"
+				#print "closest distance"
+				#print ""
 				count = count + 1
 				continue
 			#print "closest"
 			#print closest_node_temp.position
-			
+			#print ""
 			#raw_input('press')
 			
 			
@@ -353,28 +479,35 @@ class MoveArm(object):
 			#vector
 			vector = random_point - closest_node_temp.position
 			#normalized
+			
 			norm = numpy.linalg.norm(vector)
 			
 			vector = vector / norm*pre_dist
 			
 			new_node_pos = closest_node_temp.position + vector
+			self.test.append(new_node_pos)
 			
 			#print "new node"
 			#print new_node_pos
-			
-			
+			#print self.calculate_distance(new_node_pos,random_point)
+			#print ""
 			
 			#check colision free
+			cco = [ 0.05672705,  0.33027653, -0.2771045,  -0.25668123,  0.31950496, -0.50404439,  0.16995038]
 			
-			result = self.check_colision(new_node_pos,closest_node_temp.position)
+			#result = self.check_colision(cco,closest_node_temp.position,1)
+			result = self.check_colision(new_node_pos,closest_node_temp.position,1)
+			
 			
 			if result == False:
-				print "check colision"
+				#print "check colision"
+				#print ""
 				count = count + 1
 				continue
 			
 			#append_node
-			
+			#print "good node"
+			#raw_input("continue node")
 			node_temp = self.node()
 			node_temp.id = count
 			node_temp.position = new_node_pos
@@ -385,21 +518,35 @@ class MoveArm(object):
 			node_list.append(node_temp)
 			
 			
-			if self.check_colision(node_temp.position,node_goal.position) == True:
+			
+			
+			if self.check_colision(node_temp.position,node_goal.position,0) == True:
 				node_goal.previous_node_id = node_temp.id
+				node_goal.id = count + 1
 				node_list.append(node_goal)
 				final_list = self.generate_path(node_list,node_goal,node_start)
-				print "end"
+				#final_list = self.clear_path(final_list)
+				print "final list"
+				for n in node_list:
+					self.print_node(n)
+				print ""
+				print "FINISH"
+				#raw_input("antes de finish")
+				#print "longitud "+str(len(final_list))
 				break
 			
 			
 			count = count + 1
+			#raw_input()
 			
 		
-		print final_list
+		print "end ------------"
+		#pepe = []
 		#q_list = [q_start, q_goal]
 
 		return final_list
+		test1 = self.test
+		#return test1
 	
 	
 
